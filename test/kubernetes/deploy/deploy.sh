@@ -16,7 +16,7 @@
 
 set -euo pipefail
 
-readonly DEFAULT_PLUGIN_IMAGE='digitalocean/do-csi-plugin:dev'
+readonly DEFAULT_PLUGIN_IMAGE='edeckers/do-csi-plugin:dev'
 
 YES=
 if [[ $# -gt 0 && ( $1 = '-y' || $1 = '--yes' ) ]]; then
@@ -61,10 +61,10 @@ kubectl -n kube-system create secret generic digitalocean --from-literal="access
 # Configure kustomize to use the specified dev image (default to the one created
 # by `VERSION=dev make publish`).
 : "${DEV_IMAGE:=$DEFAULT_PLUGIN_IMAGE}"
-kustomize edit set image digitalocean/do-csi-plugin="${DEV_IMAGE}"
+kustomize edit set image edeckers/do-csi-plugin="${DEV_IMAGE}"
 # Undo any image updates done to kustomization.yaml to prevent git pollution.
 # shellcheck disable=SC2064
-trap "kustomize edit set image digitalocean/do-csi-plugin=$DEFAULT_PLUGIN_IMAGE" EXIT
+trap "kustomize edit set image edeckers/do-csi-plugin=$DEFAULT_PLUGIN_IMAGE" EXIT
 
 # Apply the customization to the dev manifest, and apply it to the cluster.
 kustomize build . --load_restrictor none | kubectl apply -f -

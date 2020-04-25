@@ -114,7 +114,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: digitalocean-csi-plugin
-          image: digitalocean/do-csi-plugin:v0.1.0
+          image: edeckers/do-csi-plugin:v0.1.0
           args :
             - "--endpoint=$(CSI_ENDPOINT)"
             - "--token=$(DIGITALOCEAN_ACCESS_TOKEN)"
@@ -224,7 +224,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: digitalocean-csi-plugin
-          image: digitalocean/do-csi-plugin:v0.1.0
+          image: edeckers/do-csi-plugin:v0.1.0
           args :
             - "--endpoint=$(CSI_ENDPOINT)"
             - "--token=$(DIGITALOCEAN_ACCESS_TOKEN)"
@@ -331,7 +331,7 @@ spec:
             capabilities:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
-          image: digitalocean/do-csi-plugin:v0.1.0
+          image: edeckers/do-csi-plugin:v0.1.0
           args :
             - "--endpoint=$(CSI_ENDPOINT)"
             - "--token=$(DIGITALOCEAN_ACCESS_TOKEN)"

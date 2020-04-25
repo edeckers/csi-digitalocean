@@ -29,7 +29,7 @@ ifneq ($(VERSION),)
 else
   VERSION ?= $(shell cat VERSION)
 endif
-DOCKER_REPO ?= digitalocean/do-csi-plugin
+DOCKER_REPO ?= edeckers/do-csi-plugin
 CANONICAL_RUNNER_IMAGE = digitalocean/k8s-e2e-test-runner
 RUNNER_IMAGE ?= $(CANONICAL_RUNNER_IMAGE)
 
@@ -52,7 +52,7 @@ bump-version:
 	@echo "Bumping VERSION from $(VERSION) to $(NEW_VERSION)"
 	@echo $(NEW_VERSION) > VERSION
 	@cp deploy/kubernetes/releases/csi-digitalocean-latest.yaml deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
-	@sed -i'' -e 's#digitalocean/do-csi-plugin:dev#digitalocean/do-csi-plugin:${NEW_VERSION}#g' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
+	@sed -i'' -e 's#edeckers/do-csi-plugin:dev#edeckers/do-csi-plugin:${NEW_VERSION}#g' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
 	@git add --intent-to-add deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
 	@sed -i'' -e '/^# This file is only for development use/d' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
 	$(eval NEW_DATE = $(shell date +%Y.%m.%d))
@@ -91,7 +91,7 @@ build:
 
 .PHONY: push
 push:
-ifeq ($(DOCKER_REPO),digitalocean/do-csi-plugin)
+ifeq ($(DOCKER_REPO),edeckers/do-csi-plugin)
   ifneq ($(BRANCH),master)
     ifneq ($(VERSION),dev)
 	  $(error "Only the `dev` tag can be published from non-master branches")

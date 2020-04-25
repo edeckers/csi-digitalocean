@@ -255,7 +255,7 @@ Dependencies are managed via [Go modules](https://github.com/golang/go/wiki/Modu
 
 PRs from the code-hosting repository are automatically unit- and end-to-end-tested in our CI (implemented by Github Actions). See the [.github/workflows directory](.github/workflows) for details.
 
-For every green build of the master branch, the container image `digitalocean/do-csi-plugin:master` is updated and pushed at the end of the CI run. This allows to test the latest commit easily.
+For every green build of the master branch, the container image `edeckers/do-csi-plugin:master` is updated and pushed at the end of the CI run. This allows to test the latest commit easily.
 
 Steps to run the tests manually are outlined below.
 
@@ -269,13 +269,13 @@ make test
 
 ## End-to-End Tests
 
-To manually run the end-to-end tests, you need to build a container image for your change first and publish it to a registry. Repository owners can publish under `digitalocean/do-csi-plugin:dev`:
+To manually run the end-to-end tests, you need to build a container image for your change first and publish it to a registry. Repository owners can publish under `edeckers/do-csi-plugin:dev`:
 
 ```shell
 VERSION=dev make publish
 ```
 
-If you do not have write permissions to `digitalocean/do-csi-plugin` on Docker Hub or are worried about conflicting usage of that tag, you can also publish under a different (presumably personal) organization:
+If you do not have write permissions to `edeckers/do-csi-plugin` on Docker Hub or are worried about conflicting usage of that tag, you can also publish under a different (presumably personal) organization:
 
 ```shell
 DOCKER_REPO=johndoe VERSION=latest-feature make publish
@@ -326,7 +326,7 @@ git tag vX.Y.Z
 git push origin vX.Y.Z
 ```
 
-The CI will publish the container image `digitalocean/do-csi-plugin:vX.Y.Z` and create a Github Release under the name `vX.Y.Z` automatically. Nothing else needs to be done.
+The CI will publish the container image `edeckers/do-csi-plugin:vX.Y.Z` and create a Github Release under the name `vX.Y.Z` automatically. Nothing else needs to be done.
 
 ## Contributing
 
