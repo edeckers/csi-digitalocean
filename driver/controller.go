@@ -142,9 +142,17 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	csiVolume := csi.Volume{
+		AccessibleTopology: []*csi.Topology{
+			{
+				Segments: map[string]string{
+					"region": d.region,
+				},
+			},
+		},
+		CapacityBytes: size,
 		VolumeContext: map[string]string{
-			PublishInfoVolumeName:  volumeName,
 			LuksEncryptedAttribute: luksEncrypted,
+			PublishInfoVolumeName:  volumeName,
 		},
 	}
 
@@ -218,19 +226,8 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	resp := &csi.CreateVolumeResponse{
-		Volume: &csi.Volume{
-			VolumeId:      vol.ID,
-			CapacityBytes: size,
-			AccessibleTopology: []*csi.Topology{
-				{
-					Segments: map[string]string{
-						"region": d.region,
-					},
-				},
-			},
-		},
-	}
+	csiVolume.VolumeId = vol.ID
+	resp := &csi.CreateVolumeResponse{Volume: &csiVolume}
 
 	// external-provisioner expects a content source to be returned if the PVC
 	// specified a data source, which corresponds to us having received a
@@ -411,6 +408,9 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	return &csi.ControllerPublishVolumeResponse{
 		PublishContext: map[string]string{
 			d.publishInfoVolumeName: vol.Name,
+			LuksEncryptedAttribute:  req.VolumeContext[LuksEncryptedAttribute],
+			LuksCipherAttribute:     req.VolumeContext[LuksCipherAttribute],
+			LuksKeySizeAttribute:    req.VolumeContext[LuksKeySizeAttribute],
 		},
 	}, nil
 }
