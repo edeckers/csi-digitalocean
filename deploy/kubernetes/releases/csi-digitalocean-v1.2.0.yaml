@@ -112,6 +112,10 @@ metadata:
     storageclass.kubernetes.io/is-default-class: "true"
 provisioner: dobs-luks.csi.digitalocean.com
 allowVolumeExpansion: true
+parameters:
+  dobs-luks.csi.digitalocean.com/luks-encrypted: "true"
+  dobs-luks.csi.digitalocean.com/luks-cipher: "aes-xts-plain64"
+  dobs-luks.csi.digitalocean.com/luks-key-size: "512"
 
 ---
 
@@ -127,7 +131,7 @@ metadata:
   name: csi-do-luks-controller
   namespace: kube-system
 spec:
-  serviceName: "csi-do"
+  serviceName: "csi-do-luks"
   selector:
     matchLabels:
       app: csi-do-luks-controller
@@ -136,7 +140,7 @@ spec:
     metadata:
       labels:
         app: csi-do-luks-controller
-        role: csi-do
+        role: csi-do-luks
     spec:
       priorityClassName: system-cluster-critical
       serviceAccount: csi-do-luks-controller-sa
@@ -412,7 +416,7 @@ spec:
     metadata:
       labels:
         app: csi-do-luks-node
-        role: csi-do
+        role: csi-do-luks
     spec:
       priorityClassName: system-node-critical
       serviceAccount: csi-do-luks-node-sa
