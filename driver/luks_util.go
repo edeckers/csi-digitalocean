@@ -30,15 +30,15 @@ import (
 const (
 	// LuksEncryptedAttribute is used to pass the information if the volume should be
 	// encrypted with luks to `NodeStageVolume`
-	LuksEncryptedAttribute = DriverName + "/luks-encrypted"
+	LuksEncryptedAttribute = DefaultDriverName + "/luks-encrypted"
 
 	// LuksCipherAttribute is used to pass the information about the luks encryption
 	// cypher to `NodeStageVolume`
-	LuksCipherAttribute = DriverName + "/luks-cipher"
+	LuksCipherAttribute = DefaultDriverName + "/luks-cipher"
 
 	// LuksKeySizeAttribute is used to pass the information about the luks key size
 	// to `NodeStageVolume`
-	LuksKeySizeAttribute = DriverName + "/luks-key-size"
+	LuksKeySizeAttribute = DefaultDriverName + "/luks-key-size"
 
 	// LuksKeyAttribute is the key of the luks key used in the map of secrets passed from the CO
 	LuksKeyAttribute = "luksKey"

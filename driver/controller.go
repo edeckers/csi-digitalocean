@@ -45,6 +45,12 @@ const (
 )
 
 const (
+	// PublishInfoVolumeName is used to pass the volume name from
+	// `ControllerPublishVolume` to `NodeStageVolume or `NodePublishVolume`
+	PublishInfoVolumeName = DefaultDriverName + "/volume-name"
+)
+
+const (
 	// minimumVolumeSizeInBytes is used to validate that the user is not trying
 	// to create a volume that is smaller than what we support
 	minimumVolumeSizeInBytes int64 = 1 * giB
@@ -854,7 +860,7 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 		}
 
 		log = log.WithFields(logrus.Fields{
-			"page":                    listOpts.Page,
+			"page": listOpts.Page,
 			"computed_starting_token": startingToken,
 		})
 
