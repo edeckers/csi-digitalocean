@@ -1,8 +1,8 @@
 apiVersion: snapshot.storage.k8s.io/v1alpha1
 kind: VolumeSnapshot
 metadata:
-  name: csi-do-test-snapshot 
+  name: csi-do-luks-test-snapshot 
 spec:
   source:
-    name: csi-do-test-pvc
+    name: csi-do-luks-test-pvc
     kind: PersistentVolumeClaim

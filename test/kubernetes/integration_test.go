@@ -709,7 +709,7 @@ func TestSnapshot_Create(t *testing.T) {
 		t.Error(err)
 	}
 
-	snapshotName := "csi-do-test-snapshot"
+	snapshotName := "csi-do-luks-test-snapshot"
 	snapshot := &v1alpha1.VolumeSnapshot{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: snapshotName,

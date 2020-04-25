@@ -23,6 +23,6 @@ RUN apk add --no-cache ca-certificates \
                        blkid \
                        e2fsprogs-extra
 
-ADD do-csi-plugin /bin/
+ADD do-csi-luks-plugin /bin/
 
-ENTRYPOINT ["/bin/do-csi-plugin"]
+ENTRYPOINT ["/bin/do-csi-luks-plugin"]

@@ -239,7 +239,7 @@ Kubernetes version.
 Special consideration is necessary when upgrading from Kubernetes 1.11 or
 earlier, which uses CSI driver version 0.2 or earlier. In these early releases,
 the driver name was `com.digitalocean.csi.dobs`, while in all subsequent
-releases it is `dobs.csi.digitalocean.com`. When upgrading, use the commandline
+releases it is `dobs-luks.csi.digitalocean.com`. When upgrading, use the commandline
 flag `--driver-name` to force the new driver to use the old name. Failing to do
 so will cause any existing PVs to be unusable since the new driver will not
 manage them and the old driver is no longer running.
@@ -255,7 +255,7 @@ Dependencies are managed via [Go modules](https://github.com/golang/go/wiki/Modu
 
 PRs from the code-hosting repository are automatically unit- and end-to-end-tested in our CI (implemented by Github Actions). See the [.github/workflows directory](.github/workflows) for details.
 
-For every green build of the master branch, the container image `edeckers/do-csi-plugin:master` is updated and pushed at the end of the CI run. This allows to test the latest commit easily.
+For every green build of the master branch, the container image `edeckers/do-csi-luks-plugin:master` is updated and pushed at the end of the CI run. This allows to test the latest commit easily.
 
 Steps to run the tests manually are outlined below.
 
@@ -269,24 +269,24 @@ make test
 
 ## End-to-End Tests
 
-To manually run the end-to-end tests, you need to build a container image for your change first and publish it to a registry. Repository owners can publish under `edeckers/do-csi-plugin:dev`:
+To manually run the end-to-end tests, you need to build a container image for your change first and publish it to a registry. Repository owners can publish under `edeckers/do-csi-luks-plugin:dev`:
 
 ```shell
 VERSION=dev make publish
 ```
 
-If you do not have write permissions to `edeckers/do-csi-plugin` on Docker Hub or are worried about conflicting usage of that tag, you can also publish under a different (presumably personal) organization:
+If you do not have write permissions to `edeckers/do-csi-luks-plugin` on Docker Hub or are worried about conflicting usage of that tag, you can also publish under a different (presumably personal) organization:
 
 ```shell
 DOCKER_REPO=johndoe VERSION=latest-feature make publish
 ```
 
-This would yield the published container image `johndoe/do-csi-plugin:latest-feature`.
+This would yield the published container image `johndoe/do-csi-luks-plugin:latest-feature`.
 
 Assuming you have your DO API token assigned to the `DIGITALOCEAN_ACCESS_TOKEN` environment variable, you can then spin up a DOKS cluster on-the-fly and execute the upstream end-to-end tests for a given set of Kubernetes versions like this:
 
 ```shell
-make test-e2e E2E_ARGS="-driver-image johndoe/do-csi-plugin:latest-feature 1.16 1.15 1.14"
+make test-e2e E2E_ARGS="-driver-image johndoe/do-csi-luks-plugin:latest-feature 1.16 1.15 1.14"
 ```
 
 See [our documentation](test/e2e/README.md) for an overview on how the end-to-end tests work as well as usage instructions.
@@ -326,7 +326,7 @@ git tag vX.Y.Z
 git push origin vX.Y.Z
 ```
 
-The CI will publish the container image `edeckers/do-csi-plugin:vX.Y.Z` and create a Github Release under the name `vX.Y.Z` automatically. Nothing else needs to be done.
+The CI will publish the container image `edeckers/do-csi-luks-plugin:vX.Y.Z` and create a Github Release under the name `vX.Y.Z` automatically. Nothing else needs to be done.
 
 ## Contributing
 

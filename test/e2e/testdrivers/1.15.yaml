@@ -18,7 +18,7 @@ StorageClass:
 SnapshotClass:
   FromName: true
 DriverInfo:
-  Name: dobs.csi.digitalocean.com-dev
+  Name: dobs-luks.csi.digitalocean.com-dev
   Capabilities:
     persistence: true
     block: true

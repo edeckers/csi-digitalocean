@@ -1,2 +1,2 @@
-cmd/do-csi-plugin/do-csi-plugin
+cmd/do-csi-luks-plugin/do-csi-luks-plugin
 .idea/

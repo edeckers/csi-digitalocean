@@ -71,7 +71,7 @@ jobs:
           VERSION: ${{ github.head_ref }}
         run: |
           VERSION="${VERSION:-latest}"
-          DOCKER_REPO=${DOCKER_ORG}/do-csi-plugin-dev make compile build push
+          DOCKER_REPO=${DOCKER_ORG}/do-csi-luks-plugin-dev make compile build push
 
   e2e-test:
     runs-on: ubuntu-18.04
@@ -120,7 +120,7 @@ jobs:
             NAME_SUFFIX=master
             TAG=latest
           fi
-          TIMEOUT=60m make test-e2e E2E_ARGS="-ginkgo-nodes ${NUM_GINKGO_NODES} -driver-image ${DOCKER_ORG}/do-csi-plugin-dev:${TAG} -runner-image ${DOCKER_ORG}/k8s-e2e-test-runner:${RUNNER_IMAGE_TAG_PREFIX}latest -name-suffix ${NAME_SUFFIX} ${{ matrix.kube-release }}"
+          TIMEOUT=60m make test-e2e E2E_ARGS="-ginkgo-nodes ${NUM_GINKGO_NODES} -driver-image ${DOCKER_ORG}/do-csi-luks-plugin-dev:${TAG} -runner-image ${DOCKER_ORG}/k8s-e2e-test-runner:${RUNNER_IMAGE_TAG_PREFIX}latest -name-suffix ${NAME_SUFFIX} ${{ matrix.kube-release }}"
 
   tag-new-master-image:
     runs-on: ubuntu-18.04
@@ -138,6 +138,6 @@ jobs:
 
       - name: tag new CSI plugin master image
         run: |
-          docker pull ${DOCKER_ORG}/do-csi-plugin-dev:latest
-          docker tag ${DOCKER_ORG}/do-csi-plugin-dev:latest ${DOCKER_ORG}/do-csi-plugin:master
-          docker push ${DOCKER_ORG}/do-csi-plugin:master
+          docker pull ${DOCKER_ORG}/do-csi-luks-plugin-dev:latest
+          docker tag ${DOCKER_ORG}/do-csi-luks-plugin-dev:latest ${DOCKER_ORG}/do-csi-luks-plugin:master
+          docker push ${DOCKER_ORG}/do-csi-luks-plugin:master

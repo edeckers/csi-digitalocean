@@ -90,7 +90,7 @@ quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
 * Deprecated `cluster-driver-registrar` sidecar. The `CSIDriver` CRD is now
   part of Kubernetes since `v1.14.0`
   [[GH-144]](https://github.com/digitalocean/csi-digitalocean/pull/144)
-* Added a new custom `CSIDriver` with the name `dobs.csi.digitalocean.com`
+* Added a new custom `CSIDriver` with the name `dobs-luks.csi.digitalocean.com`
   [[GH-144]](https://github.com/digitalocean/csi-digitalocean/pull/144)
 * Fix checking volume snapshot existency before proceeding creating a snapshot
   based volume
@@ -109,7 +109,7 @@ quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
 * Rename the cluster role bindings for the `node-driver-registrar` to be
   consistent with the other role bindings.
   [[GH-118]](https://github.com/digitalocean/csi-digitalocean/pull/118)
-* Remove the `--token` flag for the `csi-do-node` driver. Drivers running on
+* Remove the `--token` flag for the `csi-do-luks-node` driver. Drivers running on
   the node don't need the token anymore.
   [[GH-118]](https://github.com/digitalocean/csi-digitalocean/pull/118)
 * Don't check the volume limits on the worker nodes (worker nodes are not able
@@ -142,7 +142,7 @@ quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
 * Cherry-pick: Rename the cluster role bindings for the `node-driver-registrar` to be
   consistent with the other role bindings.
   [[GH-118]](https://github.com/digitalocean/csi-digitalocean/pull/118)
-* Cherry-pick: Remove the `--token` flag for the `csi-do-node` driver. Drivers running on
+* Cherry-pick: Remove the `--token` flag for the `csi-do-luks-node` driver. Drivers running on
   the node don't need the token anymore.
   [[GH-118]](https://github.com/digitalocean/csi-digitalocean/pull/118)
 * Cherry-pick: Don't check the volume limits on the worker nodes (worker nodes are not able

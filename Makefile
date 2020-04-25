@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-NAME=do-csi-plugin
+NAME=do-csi-luks-plugin
 OS ?= linux
 GO_VERSION := 1.14
 ifeq ($(strip $(shell git status --porcelain 2>/dev/null)),)
@@ -23,13 +23,13 @@ endif
 COMMIT ?= $(shell git rev-parse HEAD)
 BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 LDFLAGS ?= -X github.com/digitalocean/csi-digitalocean/driver.version=${VERSION} -X github.com/digitalocean/csi-digitalocean/driver.commit=${COMMIT} -X github.com/digitalocean/csi-digitalocean/driver.gitTreeState=${GIT_TREE_STATE}
-PKG ?= github.com/digitalocean/csi-digitalocean/cmd/do-csi-plugin
+PKG ?= github.com/digitalocean/csi-digitalocean/cmd/do-csi-luks-plugin
 ifneq ($(VERSION),)
   VERSION := $(shell /bin/echo -n "$(VERSION)" | tr -c '[:alnum:]._-' '-')
 else
   VERSION ?= $(shell cat VERSION)
 endif
-DOCKER_REPO ?= edeckers/do-csi-plugin
+DOCKER_REPO ?= edeckers/do-csi-luks-plugin
 CANONICAL_RUNNER_IMAGE = digitalocean/k8s-e2e-test-runner
 RUNNER_IMAGE ?= $(CANONICAL_RUNNER_IMAGE)
 
@@ -52,7 +52,7 @@ bump-version:
 	@echo "Bumping VERSION from $(VERSION) to $(NEW_VERSION)"
 	@echo $(NEW_VERSION) > VERSION
 	@cp deploy/kubernetes/releases/csi-digitalocean-latest.yaml deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
-	@sed -i'' -e 's#edeckers/do-csi-plugin:dev#edeckers/do-csi-plugin:${NEW_VERSION}#g' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
+	@sed -i'' -e 's#edeckers/do-csi-luks-plugin:dev#edeckers/do-csi-luks-plugin:${NEW_VERSION}#g' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
 	@git add --intent-to-add deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
 	@sed -i'' -e '/^# This file is only for development use/d' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
 	$(eval NEW_DATE = $(shell date +%Y.%m.%d))
@@ -63,7 +63,7 @@ bump-version:
 .PHONY: compile
 compile:
 	@echo "==> Building the project"
-	@docker run --rm -e GOOS=${OS} -e GOARCH=amd64 -v ${PWD}/:/app -w /app golang:${GO_VERSION}-alpine sh -c 'apk add git && go build -mod=vendor -o cmd/do-csi-plugin/${NAME} -ldflags "$(LDFLAGS)" ${PKG}'
+	@docker run --rm -e GOOS=${OS} -e GOARCH=amd64 -v ${PWD}/:/app -w /app golang:${GO_VERSION}-alpine sh -c 'apk add git && go build -mod=vendor -o cmd/do-csi-luks-plugin/${NAME} -ldflags "$(LDFLAGS)" ${PKG}'
 
 .PHONY: check-unused
 check-unused: vendor
@@ -87,11 +87,11 @@ test-e2e:
 .PHONY: build
 build:
 	@echo "==> Building the docker image"
-	@docker build -t $(DOCKER_REPO):$(VERSION) cmd/do-csi-plugin -f cmd/do-csi-plugin/Dockerfile
+	@docker build -t $(DOCKER_REPO):$(VERSION) cmd/do-csi-luks-plugin -f cmd/do-csi-luks-plugin/Dockerfile
 
 .PHONY: push
 push:
-ifeq ($(DOCKER_REPO),edeckers/do-csi-plugin)
+ifeq ($(DOCKER_REPO),edeckers/do-csi-luks-plugin)
   ifneq ($(BRANCH),master)
     ifneq ($(VERSION),dev)
 	  $(error "Only the `dev` tag can be published from non-master branches")

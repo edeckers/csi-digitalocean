@@ -22,73 +22,73 @@ resources:
 - ../../../deploy/kubernetes/releases/csi-digitalocean-latest.yaml
 nameSuffix: -dev
 images:
-- name: edeckers/do-csi-plugin
-  newName: edeckers/do-csi-plugin
+- name: edeckers/do-csi-luks-plugin
+  newName: edeckers/do-csi-luks-plugin
   newTag: dev
 patchesStrategicMerge:
 - |-
   apiVersion: apps/v1
   kind: StatefulSet
   metadata:
-    name: csi-do-controller
+    name: csi-do-luks-controller
     namespace: kube-system
   spec:
-    serviceName: csi-do-dev
+    serviceName: csi-do-luks-dev
     selector:
       matchLabels:
-        app: csi-do-controller-dev
+        app: csi-do-luks-controller-dev
     template:
       metadata:
         labels:
-          app: csi-do-controller-dev
-          role: csi-do-dev
+          app: csi-do-luks-controller-dev
+          role: csi-do-luks-dev
       spec:
-        serviceAccount: csi-do-controller-sa-dev
+        serviceAccount: csi-do-luks-controller-sa-dev
         containers:
-        - name: csi-do-plugin
+        - name: csi-do-luks-plugin
           args:
           - --endpoint=$(CSI_ENDPOINT)
           - --token=$(DIGITALOCEAN_ACCESS_TOKEN)
           - --url=$(DIGITALOCEAN_API_URL)
-          - --driver-name=dobs.csi.digitalocean.com-dev
+          - --driver-name=dobs-luks.csi.digitalocean.com-dev
 - |-
   apiVersion: apps/v1
   kind: DaemonSet
   metadata:
-    name: csi-do-node
+    name: csi-do-luks-node
     namespace: kube-system
   spec:
     selector:
       matchLabels:
-        app: csi-do-node-dev
+        app: csi-do-luks-node-dev
     template:
       metadata:
         labels:
-          app: csi-do-node-dev
-          role: csi-do-dev
+          app: csi-do-luks-node-dev
+          role: csi-do-luks-dev
       spec:
-        serviceAccount: csi-do-node-sa-dev
+        serviceAccount: csi-do-luks-node-sa-dev
         containers:
-        - name: csi-do-plugin
+        - name: csi-do-luks-plugin
           args:
           - --endpoint=$(CSI_ENDPOINT)
           - --url=$(DIGITALOCEAN_API_URL)
-          - --driver-name=dobs.csi.digitalocean.com-dev
+          - --driver-name=dobs-luks.csi.digitalocean.com-dev
         - name: csi-node-driver-registrar
           env:
           - name: DRIVER_REG_SOCK_PATH
-            value: /var/lib/kubelet/plugins/dobs.csi.digitalocean.com-dev/csi.sock
+            value: /var/lib/kubelet/plugins/dobs-luks.csi.digitalocean.com-dev/csi.sock
           lifecycle:
             preStop:
               exec:
                 command:
                 - /bin/sh
                 - -c
-                - rm -rf /registration/dobs.csi.digitalocean.com-dev /registration/dobs.csi.digitalocean.com-dev-reg.sock
+                - rm -rf /registration/dobs-luks.csi.digitalocean.com-dev /registration/dobs-luks.csi.digitalocean.com-dev-reg.sock
         volumes:
         - name: plugin-dir
           hostPath:
-            path: /var/lib/kubelet/plugins/dobs.csi.digitalocean.com-dev
+            path: /var/lib/kubelet/plugins/dobs-luks.csi.digitalocean.com-dev
             type: DirectoryOrCreate
 - |-
   apiVersion: storage.k8s.io/v1
@@ -97,7 +97,7 @@ patchesStrategicMerge:
     name: do-luks-block-storage
     namespace: kube-system
     annotations: null
-  provisioner: dobs.csi.digitalocean.com-dev
+  provisioner: dobs-luks.csi.digitalocean.com-dev
 - |-
   apiVersion: snapshot.storage.k8s.io/v1alpha1
   kind: VolumeSnapshotClass
@@ -105,4 +105,4 @@ patchesStrategicMerge:
     name: do-luks-block-storage
     namespace: kube-system
     annotations: null
-  snapshotter: dobs.csi.digitalocean.com-dev
+  snapshotter: dobs-luks.csi.digitalocean.com-dev

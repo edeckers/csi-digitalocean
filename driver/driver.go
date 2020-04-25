@@ -41,7 +41,7 @@ import (
 const (
 	// DefaultDriverName defines the name that is used in Kubernetes and the CSI
 	// system for the canonical, official name of this plugin
-	DefaultDriverName        = "dobs.csi.digitalocean.com"
+	DefaultDriverName        = "dobs-luks.csi.digitalocean.com"
 	defaultWaitActionTimeout = 1 * time.Minute
 )
 

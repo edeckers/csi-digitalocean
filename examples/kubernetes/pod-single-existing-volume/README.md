@@ -27,7 +27,7 @@ metadata:
   annotations:
     # fake it by indicating this is provisioned dynamically, so the system
     # works properly
-    pv.kubernetes.io/provisioned-by: dobs.csi.digitalocean.com
+    pv.kubernetes.io/provisioned-by: dobs-luks.csi.digitalocean.com
 spec:
   storageClassName: do-luks-block-storage
   # by default, the volume will be not deleted if you delete the PVC, change to
@@ -38,7 +38,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   csi:
-    driver: dobs.csi.digitalocean.com
+    driver: dobs-luks.csi.digitalocean.com
     fsType: ext4
     volumeHandle: 1952d58a-c714-11e8-bc0c-0a58ac14421e
     volumeAttributes:

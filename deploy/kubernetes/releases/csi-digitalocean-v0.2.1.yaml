@@ -40,7 +40,7 @@ provisioner: com.digitalocean.csi.dobs
 kind: StatefulSet
 apiVersion: apps/v1beta1
 metadata:
-  name: csi-do-controller
+  name: csi-do-luks-controller
   namespace: kube-system
 spec:
   serviceName: "csi-do"
@@ -48,10 +48,10 @@ spec:
   template:
     metadata:
       labels:
-        app: csi-do-controller
+        app: csi-do-luks-controller
         role: csi-do
     spec:
-      serviceAccount: csi-do-controller-sa
+      serviceAccount: csi-do-luks-controller-sa
       containers:
         - name: csi-provisioner
           image: quay.io/k8scsi/csi-provisioner:v0.3.0
@@ -78,8 +78,8 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
-        - name: csi-do-plugin
-          image: edeckers/do-csi-plugin:v0.2.1
+        - name: csi-do-luks-plugin
+          image: edeckers/do-csi-luks-plugin:v0.2.1
           args :
             - "--endpoint=$(CSI_ENDPOINT)"
             - "--token=$(DIGITALOCEAN_ACCESS_TOKEN)"
@@ -106,7 +106,7 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: csi-do-controller-sa
+  name: csi-do-luks-controller-sa
   namespace: kube-system
 
 ---
@@ -114,11 +114,11 @@ metadata:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-do-controller-provisioner-binding
+  name: csi-do-luks-controller-provisioner-binding
   namespace: kube-system
 subjects:
   - kind: ServiceAccount
-    name: csi-do-controller-sa
+    name: csi-do-luks-controller-sa
     namespace: kube-system
 roleRef:
   kind: ClusterRole
@@ -130,11 +130,11 @@ roleRef:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-do-controller-attacher-binding
+  name: csi-do-luks-controller-attacher-binding
   namespace: kube-system
 subjects:
   - kind: ServiceAccount
-    name: csi-do-controller-sa
+    name: csi-do-luks-controller-sa
     namespace: kube-system
 roleRef:
   kind: ClusterRole
@@ -153,19 +153,19 @@ roleRef:
 kind: DaemonSet
 apiVersion: apps/v1beta2
 metadata:
-  name: csi-do-node
+  name: csi-do-luks-node
   namespace: kube-system
 spec:
   selector:
     matchLabels:
-      app: csi-do-node
+      app: csi-do-luks-node
   template:
     metadata:
       labels:
-        app: csi-do-node
+        app: csi-do-luks-node
         role: csi-do
     spec:
-      serviceAccount: csi-do-node-sa
+      serviceAccount: csi-do-luks-node-sa
       hostNetwork: true
       containers:
         - name: driver-registrar
@@ -186,8 +186,8 @@ spec:
               # TODO(arslan): the registrar is not implemented yet
               # - name: registrar-socket-dir
               #   mountPath: /var/lib/csi/sockets/
-        - name: csi-do-plugin
-          image: edeckers/do-csi-plugin:v0.2.1
+        - name: csi-do-luks-plugin
+          image: edeckers/do-csi-luks-plugin:v0.2.1
           args :
             - "--endpoint=$(CSI_ENDPOINT)"
             - "--url=$(DIGITALOCEAN_API_URL)"
@@ -234,7 +234,7 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: csi-do-node-sa
+  name: csi-do-luks-node-sa
   namespace: kube-system
 
 ---
@@ -242,15 +242,15 @@ metadata:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-do-driver-registrar-binding
+  name: csi-do-luks-driver-registrar-binding
   namespace: kube-system
 subjects:
   - kind: ServiceAccount
-    name: csi-do-node-sa
+    name: csi-do-luks-node-sa
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: csi-do-driver-registrar-role
+  name: csi-do-luks-driver-registrar-role
   apiGroup: rbac.authorization.k8s.io          
 
 
@@ -259,7 +259,7 @@ roleRef:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-do-driver-registrar-role
+  name: csi-do-luks-driver-registrar-role
   namespace: kube-system
 rules:
   - apiGroups: [""]

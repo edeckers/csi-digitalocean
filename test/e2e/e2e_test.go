@@ -127,7 +127,7 @@ e2e.test -retain
 e2e.test -kubeconfig=$HOME/.kube/config
 
 # Use a custom driver image:
-e2e.test -driver-image=timoreimann/do-csi-plugin:dev
+e2e.test -driver-image=timoreimann/do-csi-luks-plugin:dev
 
 # Use a custom end-to-end test runner image:
 e2e.test -runner-image=timoreimann/k8s-e2e-test-runner:latest

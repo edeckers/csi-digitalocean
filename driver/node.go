@@ -54,9 +54,9 @@ var (
 	// not formatted. Useful for cases if the user wants to reuse an existing
 	// volume. We support using either the legacy driver name
 	// (com.digitalocean.csi.dobs) or the modern driver name
-	// (dobs.csi.digitalocean.com).
+	// (dobs-luks.csi.digitalocean.com).
 	annsNoFormatVolume = []string{
-		"dobs.csi.digitalocean.com/noformat",
+		"dobs-luks.csi.digitalocean.com/noformat",
 		"com.digitalocean.csi.dobs/noformat",
 	}
 )
