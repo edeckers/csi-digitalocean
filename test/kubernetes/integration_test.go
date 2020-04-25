@@ -60,9 +60,9 @@ var (
 	snapClient        snapclientset.Interface
 	doClient          *godo.Client
 	// testStorageClass defines the storage class to test. By default it's our
-	// default storage class name, do-block-storage, but can be set to a
+	// default storage class name, do-luks-block-storage, but can be set to a
 	// different value via the TEST_STORAGE_CLASS environment variable.
-	testStorageClass = "do-block-storage"
+	testStorageClass = "do-luks-block-storage"
 	// skipCleanup can be set to true via the SKIP_CLEANUP environment variable
 	// to have all resources left behind on test failure. This is useful for
 	// investigating failures.
@@ -978,7 +978,7 @@ func TestUnpublishOnDetachedVolume(t *testing.T) {
 }
 
 func setup() error {
-	// Default storage class is "do-block-storage" but we can override it via an
+	// Default storage class is "do-luks-block-storage" but we can override it via an
 	// environment variable.
 	if storageClass := os.Getenv("TEST_STORAGE_CLASS"); storageClass != "" {
 		testStorageClass = storageClass

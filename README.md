@@ -173,7 +173,7 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: do-block-storage
+  storageClassName: do-luks-block-storage
 ```
 
 Check that a new `PersistentVolume` is created based on your claim:
@@ -181,7 +181,7 @@ Check that a new `PersistentVolume` is created based on your claim:
 ```
 $ kubectl get pv
 NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS    CLAIM             STORAGECLASS       REASON    AGE
-pvc-0879b207-9558-11e8-b6b4-5218f75c62b9   5Gi        RWO            Delete           Bound     default/csi-pvc   do-block-storage             3m
+pvc-0879b207-9558-11e8-b6b4-5218f75c62b9   5Gi        RWO            Delete           Bound     default/csi-pvc   do-luks-block-storage             3m
 ```
 
 The above output means that the CSI plugin successfully created (provisioned) a

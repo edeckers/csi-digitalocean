@@ -7,7 +7,7 @@ metadata:
     # works properly
     pv.kubernetes.io/provisioned-by: dobs.csi.digitalocean.com
 spec:
-  storageClassName: do-block-storage
+  storageClassName: do-luks-block-storage
   # by default, the volume will be not deleted if you delete the PVC, change to
   # "Delete" if you wish the volume to be deleted automatically with the PVC
   persistentVolumeReclaimPolicy: Delete

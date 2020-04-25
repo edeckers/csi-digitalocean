@@ -91,7 +91,7 @@ spec:
 kind: VolumeSnapshotClass
 apiVersion: snapshot.storage.k8s.io/v1alpha1
 metadata:
-  name: do-block-storage
+  name: do-luks-block-storage
   namespace: kube-system
   annotations:
     snapshot.storage.kubernetes.io/is-default-class: "true"
@@ -102,7 +102,7 @@ snapshotter: dobs.csi.digitalocean.com
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
-  name: do-block-storage
+  name: do-luks-block-storage
   namespace: kube-system
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"

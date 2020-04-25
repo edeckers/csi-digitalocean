@@ -29,7 +29,7 @@ metadata:
     # works properly
     pv.kubernetes.io/provisioned-by: dobs.csi.digitalocean.com
 spec:
-  storageClassName: do-block-storage
+  storageClassName: do-luks-block-storage
   # by default, the volume will be not deleted if you delete the PVC, change to
   # "Delete" if you wish the volume to be deleted automatically with the PVC
   persistentVolumeReclaimPolicy: Delete
@@ -63,7 +63,7 @@ View information about the `PersistentVolume`:
 $ kubectl get pv volume-nyc1-01
 
 NAME             CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM     STORAGECLASS       REASON    AGE
-volume-nyc1-01   5Gi        RWO            Delete           Available             do-block-storage             15s
+volume-nyc1-01   5Gi        RWO            Delete           Available             do-luks-block-storage             15s
 ```
 
 The status is `Available`. This means it has not yet been bound to a
@@ -81,7 +81,7 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: do-block-storage
+  storageClassName: do-luks-block-storage
 ```
 
 This is the same (just like our other examples). When you create `PVC`,
@@ -101,7 +101,7 @@ Now look at the PersistentVolumeClaim (PVC):
 ```
 kubectl get pvc task-pv-claim
 NAME          STATUS    VOLUME           CAPACITY   ACCESS MODES   STORAGECLASS       AGE
-csi-pod-pvc   Bound     volume-nyc1-01   5Gi        RWO            do-block-storage   5s
+csi-pod-pvc   Bound     volume-nyc1-01   5Gi        RWO            do-luks-block-storage   5s
 ```
 
 As you see, the output shows that the PVC is bound to our PersistentVolume, `volume-nyc1-01`.

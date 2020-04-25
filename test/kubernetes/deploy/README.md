@@ -34,7 +34,7 @@ To test a development version on a DOKS cluster, do the following:
 4. Run the integration tests from the repository root specifying a DigitalOcean API token
    against the dev storage class:
    ```console
-   $ CSI_DIGITALOCEAN_ACCESS_TOKEN=aa823a5a07d5aa7c TEST_STORAGE_CLASS=do-block-storage-dev make test-integration
+   $ CSI_DIGITALOCEAN_ACCESS_TOKEN=aa823a5a07d5aa7c TEST_STORAGE_CLASS=do-luks-block-storage-dev make test-integration
    ```
 
    **Note:** If the `CSI_DIGITALOCEAN_ACCESS_TOKEN` environment variable does not specify
