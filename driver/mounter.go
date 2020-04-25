@@ -1,5 +1,6 @@
 /*
-Copyright 2020 DigitalOcean
+Copyright cloudscale.ch
+Copyright 2018 DigitalOcean
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,15 +21,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
+)
+
+const (
+	diskIDPath = "/dev/disk/by-id"
 )
 
 type findmntResponse struct {
@@ -36,15 +41,11 @@ type findmntResponse struct {
 }
 
 type fileSystem struct {
+	Source      string `json:"source"`
 	Target      string `json:"target"`
 	Propagation string `json:"propagation"`
 	FsType      string `json:"fstype"`
 	Options     string `json:"options"`
-}
-
-type volumeStatistics struct {
-	availableBytes, totalBytes, usedBytes    int64
-	availableInodes, totalInodes, usedInodes int64
 }
 
 const (
@@ -53,33 +54,28 @@ const (
 )
 
 // Mounter is responsible for formatting and mounting volumes
-// TODO(timoreimann): find a more suitable name since the interface encompasses
-// more than just mounting functionality by now.
 type Mounter interface {
 	// Format formats the source with the given filesystem type
-	Format(source, fsType string) error
+	Format(source, fsType string, luksContext LuksContext) error
 
 	// Mount mounts source to target with the given fstype and options.
-	Mount(source, target, fsType string, options ...string) error
+	Mount(source, target, fsType string, luksContext LuksContext, options ...string) error
 
 	// Unmount unmounts the given target
-	Unmount(target string) error
+	Unmount(target string, luksContext LuksContext) error
 
 	// IsFormatted checks whether the source device is formatted or not. It
 	// returns true if the source device is already formatted.
-	IsFormatted(source string) (bool, error)
+	IsFormatted(source string, luksContext LuksContext) (bool, error)
 
 	// IsMounted checks whether the target path is a correct mount (i.e:
 	// propagated). It returns true if it's mounted. An error is returned in
 	// case of system errors or if it's mounted incorrectly.
 	IsMounted(target string) (bool, error)
 
-	// GetStatistics returns capacity-related volume statistics for the given
-	// volume path.
-	GetStatistics(volumePath string) (volumeStatistics, error)
-
-	// IsBlockDevice checks whether the device at the path is a block device
-	IsBlockDevice(volumePath string) (bool, error)
+	// Used to find a path in /dev/disk/by-id with a serial that we have from
+	// the cloudscale API.
+	FinalizeVolumeAttachmentAndFindPath(logger *logrus.Entry, linuxSerial string) (*string, error)
 }
 
 // TODO(arslan): this is Linux only for now. Refactor this into a package with
@@ -96,7 +92,7 @@ func newMounter(log *logrus.Entry) *mounter {
 	}
 }
 
-func (m *mounter) Format(source, fsType string) error {
+func (m *mounter) Format(source, fsType string, luksContext LuksContext) error {
 	mkfsCmd := fmt.Sprintf("mkfs.%s", fsType)
 
 	_, err := exec.LookPath(mkfsCmd)
@@ -119,26 +115,46 @@ func (m *mounter) Format(source, fsType string) error {
 
 	mkfsArgs = append(mkfsArgs, source)
 	if fsType == "ext4" || fsType == "ext3" {
-		mkfsArgs = []string{"-F", source}
+		mkfsArgs = []string{
+			"-F",  // Force flag
+			"-m0", // Zero blocks reserved for privileged processes
+			source,
+		}
 	}
 
-	m.log.WithFields(logrus.Fields{
-		"cmd":  mkfsCmd,
-		"args": mkfsArgs,
-	}).Info("executing format command")
+	if !luksContext.EncryptionEnabled {
+		m.log.WithFields(logrus.Fields{
+			"cmd":  mkfsCmd,
+			"args": mkfsArgs,
+		}).Info("executing format command")
 
-	out, err := exec.Command(mkfsCmd, mkfsArgs...).CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("formatting disk failed: %v cmd: '%s %s' output: %q",
-			err, mkfsCmd, strings.Join(mkfsArgs, " "), string(out))
+		out, err := exec.Command(mkfsCmd, mkfsArgs...).CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("formatting disk failed: %v cmd: '%s %s' output: %q",
+				err, mkfsCmd, strings.Join(mkfsArgs, " "), string(out))
+		}
+
+		return nil
+	} else {
+		err := luksContext.validate()
+		if err != nil {
+			return err
+		}
+		err = luksFormat(source, mkfsCmd, mkfsArgs, luksContext, m.log)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-
-	return nil
 }
 
-func (m *mounter) Mount(source, target, fsType string, opts ...string) error {
+func (m *mounter) Mount(source, target, fsType string, luksContext LuksContext, opts ...string) error {
 	mountCmd := "mount"
 	mountArgs := []string{}
+
+	if fsType == "" {
+		return errors.New("fs type is not specified for mounting the volume")
+	}
 
 	if source == "" {
 		return errors.New("source is not specified for mounting the volume")
@@ -148,36 +164,33 @@ func (m *mounter) Mount(source, target, fsType string, opts ...string) error {
 		return errors.New("target is not specified for mounting the volume")
 	}
 
-	// This is a raw block device mount. Create the mount point as a file
-	// since bind mount device node requires it to be a file
-	if fsType == "" {
-		// create directory for target, os.Mkdirall is noop if directory exists
-		err := os.MkdirAll(filepath.Dir(target), 0750)
-		if err != nil {
-			return fmt.Errorf("failed to create target directory for raw block bind mount: %v", err)
-		}
-
-		file, err := os.OpenFile(target, os.O_CREATE, 0660)
-		if err != nil {
-			return fmt.Errorf("failed to create target file for raw block bind mount: %v", err)
-		}
-		file.Close()
-	} else {
-		mountArgs = append(mountArgs, "-t", fsType)
-
-		// create target, os.Mkdirall is noop if directory exists
-		err := os.MkdirAll(target, 0750)
-		if err != nil {
-			return err
-		}
-	}
+	mountArgs = append(mountArgs, "-t", fsType)
 
 	if len(opts) > 0 {
 		mountArgs = append(mountArgs, "-o", strings.Join(opts, ","))
 	}
 
-	mountArgs = append(mountArgs, source)
+	if luksContext.EncryptionEnabled && luksContext.VolumeLifecycle == VolumeLifecycleNodeStageVolume {
+		luksSource, err := luksPrepareMount(source, luksContext, m.log)
+		if err != nil {
+			m.log.WithFields(logrus.Fields{
+				"error":  err.Error(),
+				"volume": luksContext.VolumeName,
+			}).Error("failed to prepare luks volume for mounting")
+			return err
+		}
+		mountArgs = append(mountArgs, luksSource)
+	} else {
+		mountArgs = append(mountArgs, source)
+	}
+
 	mountArgs = append(mountArgs, target)
+
+	// create target, os.Mkdirall is noop if it exists
+	err := os.MkdirAll(target, 0750)
+	if err != nil {
+		return err
+	}
 
 	m.log.WithFields(logrus.Fields{
 		"cmd":  mountCmd,
@@ -193,12 +206,23 @@ func (m *mounter) Mount(source, target, fsType string, opts ...string) error {
 	return nil
 }
 
-func (m *mounter) Unmount(target string) error {
-	umountCmd := "umount"
+func (m *mounter) Unmount(target string, luksContext LuksContext) error {
 	if target == "" {
 		return errors.New("target is not specified for unmounting the volume")
 	}
 
+	// if this is the unmount call after the mount-bind has been removed,
+	// a luks volume needs to be closed after unmounting; get the source
+	// of the mount to check if that is a luks volume
+	mountSources, err := getMountSources(target)
+	if err != nil {
+		return err
+	}
+	if len(mountSources) == 0 {
+		return fmt.Errorf("unable to determine mount sources of target %s", target)
+	}
+
+	umountCmd := "umount"
 	umountArgs := []string{target}
 
 	m.log.WithFields(logrus.Fields{
@@ -212,10 +236,59 @@ func (m *mounter) Unmount(target string) error {
 			err, umountCmd, target, string(out))
 	}
 
+	// if this is the unstaging process, check if the source is a luks volume and close it
+	if luksContext.VolumeLifecycle == VolumeLifecycleNodeUnstageVolume {
+		for _, source := range mountSources {
+			isLuksMapping, mappingName, err := isLuksMapping(source)
+			if err != nil {
+				return err
+			}
+			if isLuksMapping {
+				err := luksClose(mappingName, m.log)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
-func (m *mounter) IsFormatted(source string) (bool, error) {
+// gets the mount sources of a mountpoint
+func getMountSources(target string) ([]string, error) {
+	_, err := exec.LookPath("findmnt")
+	if err != nil {
+		if err == exec.ErrNotFound {
+			return nil, fmt.Errorf("%q executable not found in $PATH", "findmnt")
+		}
+		return nil, err
+	}
+	out, err := exec.Command("sh", "-c", fmt.Sprintf("findmnt -o SOURCE -n -M %s", target)).CombinedOutput()
+	if err != nil {
+		// findmnt exits with non zero exit status if it couldn't find anything
+		if strings.TrimSpace(string(out)) == "" {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("checking mounted failed: %v cmd: %q output: %q",
+			err, "findmnt", string(out))
+	}
+	return strings.Split(string(out), "\n"), nil
+}
+
+func (m *mounter) IsFormatted(source string, luksContext LuksContext) (bool, error) {
+	if !luksContext.EncryptionEnabled {
+		return isVolumeFormatted(source, m.log)
+	}
+
+	formatted, err := isLuksVolumeFormatted(source, luksContext, m.log)
+	if err != nil {
+		return false, err
+	}
+	return formatted, nil
+}
+
+func isVolumeFormatted(source string, log *logrus.Entry) (bool, error) {
 	if source == "" {
 		return false, errors.New("source is not specified")
 	}
@@ -231,7 +304,7 @@ func (m *mounter) IsFormatted(source string) (bool, error) {
 
 	blkidArgs := []string{source}
 
-	m.log.WithFields(logrus.Fields{
+	log.WithFields(logrus.Fields{
 		"cmd":  blkidCmd,
 		"args": blkidArgs,
 	}).Info("checking if source is formatted")
@@ -248,8 +321,9 @@ func (m *mounter) IsFormatted(source string) (bool, error) {
 		exitCode = ws.ExitStatus()
 		if exitCode == blkidExitStatusNoIdentifiers {
 			return false, nil
+		} else {
+			return false, fmt.Errorf("checking formatting failed: %v cmd: %q, args: %q", err, blkidCmd, blkidArgs)
 		}
-		return false, fmt.Errorf("checking formatting failed: %v cmd: %q, args: %q", err, blkidCmd, blkidArgs)
 	}
 
 	return true, nil
@@ -314,55 +388,89 @@ func (m *mounter) IsMounted(target string) (bool, error) {
 	return targetFound, nil
 }
 
-func (m *mounter) GetStatistics(volumePath string) (volumeStatistics, error) {
-	isBlock, err := m.IsBlockDevice(volumePath)
-	if err != nil {
-		return volumeStatistics{}, fmt.Errorf("failed to determine if volume %s is block device: %v", volumePath, err)
-	}
+// Copyright note for the functions below. Originally taken from
+// https://github.com/kubernetes/cloud-provider-openstack/blob/v1.16.0/pkg/volume/cinder/cinder_util.go
+// Sleightly modified.
+/*
+Copyright 2015 The Kubernetes Authors.
 
-	if isBlock {
-		// See http://man7.org/linux/man-pages/man8/blockdev.8.html for details
-		output, err := exec.Command("blockdev", "getsize64", volumePath).CombinedOutput()
-		if err != nil {
-			return volumeStatistics{}, fmt.Errorf("error when getting size of block volume at path %s: output: %s, err: %v", volumePath, string(output), err)
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+func (m *mounter) FinalizeVolumeAttachmentAndFindPath(logger *logrus.Entry, linuxSerial string) (*string, error) {
+	numTries := 0
+	for {
+		probeAttachedVolume(logger)
+
+		source := filepath.Join(diskIDPath, "virtio-"+linuxSerial)
+		_, err := os.Stat(source)
+		if err == nil {
+			return &source, nil
 		}
-		strOut := strings.TrimSpace(string(output))
-		gotSizeBytes, err := strconv.ParseInt(strOut, 10, 64)
-		if err != nil {
-			return volumeStatistics{}, fmt.Errorf("failed to parse size %s into int", strOut)
+		if !os.IsNotExist(err) {
+			return nil, err
 		}
 
-		return volumeStatistics{
-			totalBytes: gotSizeBytes,
-		}, nil
+		source = filepath.Join(diskIDPath, "scsi-"+linuxSerial)
+		_, err = os.Stat(source)
+		if err == nil {
+			return &source, nil
+		}
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+
+		numTries++
+		if numTries == 10 {
+			break
+		}
+		time.Sleep(time.Second)
 	}
-
-	var statfs unix.Statfs_t
-	// See http://man7.org/linux/man-pages/man2/statfs.2.html for details.
-	err = unix.Statfs(volumePath, &statfs)
-	if err != nil {
-		return volumeStatistics{}, err
-	}
-
-	volStats := volumeStatistics{
-		availableBytes: int64(statfs.Bavail) * int64(statfs.Bsize),
-		totalBytes:     int64(statfs.Blocks) * int64(statfs.Bsize),
-		usedBytes:      (int64(statfs.Blocks) - int64(statfs.Bfree)) * int64(statfs.Bsize),
-
-		availableInodes: int64(statfs.Ffree),
-		totalInodes:     int64(statfs.Files),
-		usedInodes:      int64(statfs.Files) - int64(statfs.Ffree),
-	}
-
-	return volStats, nil
+	return nil, errors.New("Could not attach disk: Timeout after 10s")
 }
 
-func (m *mounter) IsBlockDevice(devicePath string) (bool, error) {
-	var stat unix.Stat_t
-	err := unix.Stat(devicePath, &stat)
-	if err != nil {
-		return false, err
+func probeAttachedVolume(logger *logrus.Entry) error {
+	// rescan scsi bus
+	scsiHostRescan()
+
+	// udevadm settle waits for udevd to process the device creation
+	// events for all hardware devices, thus ensuring that any device
+	// nodes have been created successfully before proceeding.
+	argsSettle := []string{"settle"}
+	cmdSettle := exec.Command("udevadm", argsSettle...)
+	_, errSettle := cmdSettle.CombinedOutput()
+	if errSettle != nil {
+		logger.Errorf("error running udevadm settle %v\n", errSettle)
 	}
 
-	return (stat.Mode & unix.S_IFMT) == unix.S_IFBLK, nil
+	args := []string{"trigger"}
+	cmd := exec.Command("udevadm", args...)
+	_, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Errorf("error running udevadm trigger %v\n", err)
+		return err
+	}
+	logger.Debugf("Successfully probed all attachments")
+	return nil
+}
+
+func scsiHostRescan() {
+	scsiPath := "/sys/class/scsi_host/"
+	if dirs, err := ioutil.ReadDir(scsiPath); err == nil {
+		for _, f := range dirs {
+			name := scsiPath + f.Name() + "/scan"
+			data := []byte("- - -")
+			ioutil.WriteFile(name, data, 0666)
+		}
+	}
 }
