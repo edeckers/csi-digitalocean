@@ -473,6 +473,8 @@ spec:
               mountPropagation: "Bidirectional"
             - name: device-dir
               mountPath: /dev
+            - name: tmpfs
+              mountPath: /tmp
       volumes:
         - name: registration-dir
           hostPath:
@@ -489,6 +491,11 @@ spec:
         - name: device-dir
           hostPath:
             path: /dev
+        # to make sure temporary stored luks keys never touch a disk
+        - name: tmpfs
+          emptyDir:
+            medium: Memory
+
 ---
 
 apiVersion: v1
