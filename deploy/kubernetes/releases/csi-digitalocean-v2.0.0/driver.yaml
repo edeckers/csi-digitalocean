@@ -45,6 +45,12 @@ metadata:
     storageclass.kubernetes.io/is-default-class: "true"
 provisioner: dobs.csi.digitalocean.com
 allowVolumeExpansion: true
+parameters:
+  dobs.csi.digitalocean.com/luks-encrypted: "true"
+  dobs.csi.digitalocean.com/luks-cipher: "aes-xts-plain64"
+  dobs.csi.digitalocean.com/luks-key-size: "512"
+  csi.storage.k8s.io/node-stage-secret-namespace: ${pvc.namespace}
+  csi.storage.k8s.io/node-stage-secret-name: ${pvc.name}-luks-key
 
 ---
 
@@ -124,7 +130,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-do-plugin
-          image: digitalocean/do-csi-plugin:v2.0.0
+          image: digitalocean/do-csi-plugin:v2.0.0-luks
           args :
             - "--endpoint=$(CSI_ENDPOINT)"
             - "--token=$(DIGITALOCEAN_ACCESS_TOKEN)"
@@ -369,7 +375,7 @@ spec:
             - name: registration-dir
               mountPath: /registration/
         - name: csi-do-plugin
-          image: digitalocean/do-csi-plugin:v2.0.0
+          image: digitalocean/do-csi-plugin:v2.0.0-luks
           args :
             - "--endpoint=$(CSI_ENDPOINT)"
             - "--url=$(DIGITALOCEAN_API_URL)"
@@ -394,6 +400,8 @@ spec:
               mountPropagation: "Bidirectional"
             - name: device-dir
               mountPath: /dev
+            - name: tmpfs
+              mountPath: /tmp
       volumes:
         - name: registration-dir
           hostPath:
@@ -413,6 +421,10 @@ spec:
         - name: udev-rules-dir
           hostPath:
             path: /etc/udev/rules.d/
+        # to make sure temporary stored luks keys never touch a disk
+        - name: tmpfs
+          emptyDir:
+            medium: Memory
 ---
 
 apiVersion: v1
